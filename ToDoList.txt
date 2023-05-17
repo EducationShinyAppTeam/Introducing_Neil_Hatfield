@@ -1,5 +1,11 @@
 # Things Needed for This Version
-1.
-2.
+1. Update Description file
+2. Update Readme
+3. Format overview page
+4. Get and clean data files from GitHub
+5. Build user exploration page
+6. Update references page
+7. Take new screenshot
+8. Deploy for testing
 
 # Ideas for Future Development
