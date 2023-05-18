@@ -95,7 +95,8 @@ ui <- list(
             class = "centerFigure",
             tags$img(
               src = "hatfield-neil-SQ.jpg",
-              height = 276
+              height = 276,
+              alt = "Headshot of Neil Hatfield"
             ),
             tags$figcaption("Neil Hatfield, ", HTML("&copy;"), "M. Fleck")
           ),
@@ -128,8 +129,8 @@ ui <- list(
           div(
             style = "text-align: center;",
             bsButton(
-              inputId = "go1",
-              label = "GO!",
+              inputId = "goToExplore",
+              label = "Go To Explore!",
               size = "large",
               icon = icon("bolt"),
               style = "default"
@@ -156,13 +157,43 @@ ui <- list(
         tabItem(
           tabName = "explore",
           withMathJax(),
-          h2("Explore the Concept"),
-          p("This page should include something for the user to do, the more
-            active and engaging, the better. The purpose of this page is to help
-            the user build a productive understanding of the concept your app
-            is dedicated to."),
-          p("Common elements include graphs, sliders, buttons, etc."),
-          p("The following comes from the NHST Caveats App:"),
+          h2("Explore the Song Knowledge Data"),
+          p("Fill in later"),
+          fluidRow(
+            column(
+              width = 4,
+              offset = 0,
+              wellPanel(
+                selectInput(
+                  inputId = "plotType",
+                  label = "Select a plot type",
+                  choices = c("Box plot", "Histogram", "Density")
+                ),
+                selectInput(
+                  inputId = "termPicked",
+                  label = "Select a term",
+                  choices = c("Spring '22", "Fall '22", "Spring '23", "All"),
+                  selected = "All"
+                ),
+                checkboxInput(
+                  inputId = "byYear",
+                  label = "Show data by year in school",
+                  value = FALSE
+                ),
+                bsButton(
+                  inputId = "makePlot",
+                  label = "Create plot",
+                  size = "large",
+                  style = "default"
+                )
+              )
+            ),
+            column(
+              width = 8,
+              offset = 0,
+              plotOutput(outputId = "songPlot")
+            )
+          )
         ),
         ### References Page ----
         tabItem(
@@ -201,6 +232,26 @@ server <- function(input, output, session) {
         title = "Information",
         text = "Learn about Neil and explore the Song Knowledge data."
       )
+    }
+  )
+
+  ## Move to Explore Page ----
+  observeEvent(
+    eventExpr = input$goToExplore,
+    handlerExpr = {
+      updateTabItems(
+        session = session,
+        inputId = "pages",
+        selected = "explore"
+      )
+    }
+  )
+
+  ## Song Knowledge Plot ----
+  observeEvent(
+    eventExpr = input$makePlot,
+    handlerExpr = {
+
     }
   )
 
