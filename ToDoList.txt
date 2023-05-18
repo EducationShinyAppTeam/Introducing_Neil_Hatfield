@@ -1,11 +1,13 @@
 # Things Needed for This Version
-1. Update Description file
-2. Update Readme
-3. Format overview page
-4. Get and clean data files from GitHub
+1. Update Description file √
+2. Update Readme √
+3. Format overview page √
+4. Get and clean data files from GitHub √
 5. Build user exploration page
 6. Update references page
-7. Take new screenshot
-8. Deploy for testing
+7. Test and make sure the console log is quiet
+8. Take new screenshot
+9. Deploy for testing
 
 # Ideas for Future Development
+Look into creating a cleaned data file to store locally instead of constantly pulling and cleaning the data in the app.
