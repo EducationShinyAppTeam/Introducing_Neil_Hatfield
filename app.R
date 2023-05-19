@@ -7,9 +7,17 @@ library(boastUtils)
 library(dplyr)
 library(ggplot2)
 library(stringr)
-library(shinya11y) # An accessibility checker
+library(shinya11y) # An accessibility checker (won't be part of final app)
 
 # Load additional dependencies and setup functions ----
+freedmanDiaconis <- function(x){
+  binwidth <- ifelse(
+    test = IQR(x) == 0,
+    yes = 0.1,
+    no = 2 * IQR(x) / (length(x)^(1/3))
+  )
+  return(binwidth)
+}
 ## Load Data from GitHub
 centralDataPath <- "https://raw.github.com/neilhatfield/STAT461/master/dataFiles/songKnowledge_"
 spring22 <- read.csv(
@@ -158,7 +166,14 @@ ui <- list(
           tabName = "explore",
           withMathJax(),
           h2("Explore the Song Knowledge Data"),
-          p("Fill in later"),
+          p("In my STAT 461-Analysis of Variance course, we design and carry out
+            a one-factor study to explore whether a student's year in school
+            impacts how well they do in a pub trivia style song quiz. For the
+            quiz, approximately 20 seconds of 10 songs is played. Players have to
+            correctly identify the full title of the song and the primary artist.
+            Players earn one point for each correct title and each correct artist."),
+          p("Explore the data sets below form a hypothesis for whether students'
+            year in school impacts how well they perform."),
           fluidRow(
             column(
               width = 4,
@@ -200,13 +215,57 @@ ui <- list(
           tabName = "references",
           withMathJax(),
           h2("References"),
-          p("You'll need to fill in this page with all of the appropriate
-            references for your app."),
+          p( # Each reference is in its own paragraph
+            class = "hangingindent", # you must set this class argument
+            "Bailey, E. (2022). shinyBS: Twitter bootstrap components for shiny.
+            (v0.61.1). [R package]. Available from https://CRAN.R-project.org/package=shinyBS"
+          ),
           p(
             class = "hangingindent",
-            "Bailey, E. (2015). shinyBS: Twitter bootstrap components for shiny.
-            (v0.61). [R package]. Available from
-            https://CRAN.R-project.org/package=shinyBS"
+            "Carey, R. and Hatfield., N. J. (2023). boastUtils: BOAST utilities.
+            (v0.1.11.2). [R Package]. Available from
+            https://github.com/EducationShinyappTeam/boastUtils"
+          ),
+          p(
+            class = "hangingindent",
+            "Chang, W. and Borges Ribeio, B. (2021). shinydashboard: Create dashboards
+            with 'Shiny'. (v0.7.2). [R Package]. Available from
+            https://CRAN.R-project.org/package=shinydashboard"
+          ),
+          p(
+            class = "hangingindent",
+            "Chang, W., Cheng, J., Allaire, J.J., Sievert, C., Schloerke, B.,
+            Xie, Y., Allen, J., McPherson, J., Dipert, A., and Borges, B. (2022).
+            shiny: Web application framework for R. (v1.7.4). [R Package].
+            Available from https://CRAN.R-project.org/package=shiny"
+          ),
+          p(
+            class = "hangingindent",
+            "Fleck, M. (2022). Picture of Neil J. Hatfield."
+          ),
+          p(
+            class = "hangingindent",
+            "Perrier, V., Meyer, F., and Granjon, D. (2023). shinyWidgets: Custom
+            inputs widgets for shiny. (v0.7.6). [R Package]. Availble from
+            https://CRAN.R-project.org/package=shinyWidgets"
+          ),
+          p(
+            class = "hangingindent",
+            "Wickham, H. (2016). ggplot2: Elegant graphics for data analysis.
+            (v3.4.2). [R Package]. New York:Springer-Verlag. Available from
+            https://ggplot2.tidyverse.org"
+          ),
+          p(
+            class = "hangingindent",
+            "Wickham, H. (2022). stringr: Simple, consistent wrappers for common
+            string operations. (v1.5.0). [R Package] Available from
+            https://CRAN.R-project.org/package=stringr"
+          ),
+          p(
+            class = "hangingindent",
+            "Wickham, H., François, R., Henry, L., Müller, K., and Vaughan, D.
+            (2023). dplyr: A grammar of data manipulation. (v1.1.2). [R Package].
+            Available from https://CRAN.R-project.org/package=dplyr"
           ),
           br(),
           br(),
@@ -220,8 +279,6 @@ ui <- list(
 
 # Define server logic ----
 server <- function(input, output, session) {
-  print(head(songKnowledgeData))
-
   ## Set up Info button ----
   observeEvent(
     eventExpr = input$info,
@@ -251,8 +308,85 @@ server <- function(input, output, session) {
   observeEvent(
     eventExpr = input$makePlot,
     handlerExpr = {
+      ### Create initial plot object
+      displayPlot <- "NA"
+      ### Filter Data, if necessary
+      if (input$termPicked != "All") {
+        plotData <- songKnowledgeData %>%
+          filter(term == input$termPicked)
+      } else {
+        plotData <- songKnowledgeData
+      }
 
-    }
+      ### Base Plot with themeing
+      basePlot <- ggplot(
+        data = plotData,
+        mapping = aes(x = score)
+      )
+
+      if (input$byYear) {
+        basePlot <- basePlot + aes(fill = year)
+      }
+
+      basePlot <- basePlot +
+        theme_bw() +
+        theme(
+          text = element_text(size = 18),
+          legend.position = "bottom"
+        ) +
+        labs(
+          x = "Score",
+          fill = "Year"
+        ) +
+        scale_fill_manual(values = psuPalette)
+
+      ### Add Plot Type
+      if (input$plotType == "Box plot") {
+        displayPlot <- basePlot +
+          geom_boxplot() +
+          theme(
+            axis.text.y = element_blank(),
+            axis.ticks.y = element_blank()
+          )
+      } else if (input$plotType == "Histogram") {
+        displayPlot <- basePlot +
+          geom_histogram(
+            color = "black",
+            binwidth = freedmanDiaconis,
+            closed = "left",
+            boundary = 0,
+            position = "identity",
+            alpha = 0.75
+          ) +
+          scale_y_continuous(expand = expansion(add = c(0, 2)))
+      } else if (input$plotType == "Density") {
+        displayPlot <- basePlot +
+          geom_density(
+            bounds = c(0, 20),
+            alpha = 0.75,
+            na.rm = TRUE
+          ) +
+          scale_y_continuous(expand = expansion(mult = c(0, 0.01)))
+      }
+
+      ### Alt text
+
+
+      ### Display the plot
+      output$songPlot <- renderPlot(
+        expr = {
+          validate(
+            need(
+              expr = !is.na(displayPlot),
+              message = "Plot could not be generated. Contact app developer."
+            )
+          )
+          displayPlot
+        },
+      )
+    },
+    ignoreNULL = FALSE,
+    ignoreInit = TRUE
   )
 
 
