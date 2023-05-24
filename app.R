@@ -7,7 +7,7 @@ library(boastUtils)
 library(dplyr)
 library(ggplot2)
 library(stringr)
-library(shinya11y) # An accessibility checker (won't be part of final app)
+# library(shinya11y) # An accessibility checker (won't be part of final app)
 
 # Load additional dependencies and setup functions ----
 freedmanDiaconis <- function(x){
@@ -65,7 +65,7 @@ songKnowledgeData$year <- factor(
 
 # Define UI for App ----
 ui <- list(
-  use_tota11y(), # place once in the UI to include accessibility checking tools
+  # use_tota11y(), # place once in the UI to include accessibility checking tools
   dashboardPage(
     skin = "red",
     ## Header ----
