@@ -1,5 +1,15 @@
 # Things Needed for This Version
-1.
-2.
+1. Update Description file √
+2. Update Readme √
+3. Format overview page √
+4. Get and clean data files from GitHub √
+5. Build user exploration page √
+6. Think about how to make better alt text √
+7. Update references page √
+8. Test and make sure the console log is quiet √
+9. Take new screenshot √
+10. Deploy for testing √
+
 
 # Ideas for Future Development
+Look into creating a cleaned data file to store locally instead of constantly pulling and cleaning the data in the app.
