@@ -7,7 +7,7 @@ library(boastUtils)
 library(dplyr)
 library(ggplot2)
 library(stringr)
-# library(shinya11y) # An accessibility checker (won't be part of final app)
+library(shinya11y) # An accessibility checker (won't be part of final app)
 
 # Load additional dependencies and setup functions ----
 freedmanDiaconis <- function(x){
@@ -28,6 +28,13 @@ fall22 <- read.csv(
 )
 spring23 <- read.csv(
   file = paste0(centralDataPath, "Sp23.csv")
+)
+## Load Alt Text----
+altText <- read.table(
+  file = "altText.csv",
+  header = TRUE,
+  sep = ",",
+  quote = "\"" # Allows for the ' in term
 )
 
 ## Apply consistent column names and bind into one file
@@ -58,7 +65,7 @@ songKnowledgeData$year <- factor(
 
 # Define UI for App ----
 ui <- list(
-  # use_tota11y(), # place once in the UI to include accessiblity checking tools
+  use_tota11y(), # place once in the UI to include accessibility checking tools
   dashboardPage(
     skin = "red",
     ## Header ----
@@ -108,11 +115,11 @@ ui <- list(
             ),
             tags$figcaption("Neil Hatfield, ", HTML("&copy;"), "M. Fleck")
           ),
-          p("Hi! Welcome one of my Shiny apps where you can learn a bit about me."),
+          p("Hi! Welcome to one of my Shiny apps where you can learn a bit about me."),
           p("I have been at Penn State since August 2019, previsously I was
             at the University of Northern Colorado and Arizona State University.
             My research interests mostly centered in the realm of Statistics
-            Education. However, I also do some research in divesity, equity, and
+            Education. However, I also do some research in diversity, equity, and
             inclusion in STEM more broadly."),
           p("I've taught a variety of classes including Pre-calculus,
             Brief/Business Calculus, Introductory Statistics (3 different flavors),
@@ -124,16 +131,10 @@ ui <- list(
             I also continue to think about modifications/improvements to various
             courses that I teach. During the regular semester, you can find me
             wearing different tie knots."),
-          h3("Instructions"),
+          h2("Instructions"),
           p("Besides learning a bit about me, you can use this app to explore
             three semesters' worth of data from a class activity I do with my
-            STAT 461-ANOVA students. Head the Explore page."),
-          p("Here is an example list of low contrast colors:"),
-          tags$ul(
-            tags$li(style = "color: #FF0000;", "Here is red text."),
-            tags$li(style = "color: #00FF00;", "Here is green text."),
-            tags$li(style = "color: #0000FF;", "Here is blue text.")
-          ),
+            STAT 461-ANOVA students. Head to the Explore page."),
           div(
             style = "text-align: center;",
             bsButton(
@@ -279,6 +280,7 @@ ui <- list(
 
 # Define server logic ----
 server <- function(input, output, session) {
+  selectedAltText <- reactiveVal("Plot Coming")
   ## Set up Info button ----
   observeEvent(
     eventExpr = input$info,
@@ -341,7 +343,28 @@ server <- function(input, output, session) {
         scale_fill_manual(values = psuPalette)
 
       ### Add Plot Type
-      if (input$plotType == "Box plot") {
+      if (input$plotType == "Density" & input$byYear) {
+        displayPlot <- plotData %>%
+          dplyr::filter(year != "Sophomore") %>%
+          ggplot(mapping = aes(x = score, fill = year)) +
+          geom_density(
+            bounds = c(0, 20),
+            alpha = 0.75,
+            na.rm = TRUE
+          ) +
+          scale_y_continuous(expand = expansion(mult = c(0, 0.01))) +
+          theme_bw() +
+          theme(
+            text = element_text(size = 18),
+            legend.position = "bottom"
+          ) +
+          labs(
+            x = "Score",
+            fill = "Year",
+            caption = "The one Sophomore scoring 8 isn't shown."
+          ) +
+          scale_fill_manual(values = psuPalette)
+      } else if (input$plotType == "Box plot") {
         displayPlot <- basePlot +
           geom_boxplot() +
           theme(
@@ -369,8 +392,17 @@ server <- function(input, output, session) {
           scale_y_continuous(expand = expansion(mult = c(0, 0.01)))
       }
 
-      ### Alt text
-
+      ### Alt text ----
+      selectedAltText(
+        altText %>%
+          filter(
+            plotType == input$plotType &
+              term == input$termPicked &
+              byTerm == input$byYear
+          ) %>%
+          select(altText) %>%
+          as.character()
+      )
 
       ### Display the plot
       output$songPlot <- renderPlot(
@@ -383,7 +415,7 @@ server <- function(input, output, session) {
           )
           displayPlot
         },
-        alt = NULL
+        alt = selectedAltText()
       )
     },
     ignoreNULL = FALSE,
