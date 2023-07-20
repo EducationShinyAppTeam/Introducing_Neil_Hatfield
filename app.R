@@ -8,6 +8,38 @@ library(dplyr)
 library(ggplot2)
 library(stringr)
 # library(shinya11y) # An accessibility checker (won't be part of final app)
+# library(shinyAce)
+# library(knitr)
+# library(shinydashboardPlus)
+# library(fresh)
+# library(howler)
+
+# Create Custom Theme ----
+# mytheme <- create_theme(
+#   # adminlte_color(
+#   #   light_blue = "#437C5E"
+#   # ),
+#   # adminlte_sidebar(
+#   #   dark_bg = "#28DEE9",
+#   #   dark_hover_bg = "#81A1C1",
+#   #   dark_color = "#2E3440"
+#   # ),
+#   # adminlte_global(
+#   #   content_bg = "#17FF88",
+#   #   box_bg = "#18FF39", 
+#   #   info_box_bg = "#D8DEE9"
+#   # ),
+#   bs_vars_button(
+#     default_bg = "#18FF39"
+#   )
+# )
+
+# source("aceText.R")
+# source("svgTest.R")
+
+# audio_files_dir <- system.file("examples/_audio", package = "howler")
+# addResourcePath("sample_audio", audio_files_dir)
+# audio_files <- file.path("sample_audio", list.files(audio_files_dir, ".mp3$"))
 
 # Load additional dependencies and setup functions ----
 freedmanDiaconis <- function(x){
@@ -67,6 +99,7 @@ songKnowledgeData$year <- factor(
 ui <- list(
   # use_tota11y(), # place once in the UI to include accessibility checking tools
   dashboardPage(
+    # freshTheme = mytheme,
     skin = "red",
     ## Header ----
     dashboardHeader(
@@ -91,6 +124,7 @@ ui <- list(
         id = "pages",
         menuItem("Overview", tabName = "overview", icon = icon("gauge-high")),
         menuItem("Explore", tabName = "explore", icon = icon("wpexplorer")),
+        menuItem("Testing Page", tabName = "testing", icon = icon("flask")),
         menuItem("References", tabName = "references", icon = icon("leanpub"))
       ),
       tags$div(
@@ -115,6 +149,16 @@ ui <- list(
             ),
             tags$figcaption("Neil Hatfield, ", HTML("&copy;"), "M. Fleck")
           ),
+          # howler(elementId = "sound", audio_files),
+          # tags$p(
+          #   howlerPlayPauseButton("sound"),
+          #   "Play or pause the track"
+          # ),
+          # tags$p(
+          #   howlerStopButton("sound"),
+          #   "Stop the track and return to the start"
+          # ),
+          # neuralNet,
           p("Hi! Welcome to one of my Shiny apps where you can learn a bit about me."),
           p("I have been at Penn State since August 2019, previsously I was
             at the University of Northern Colorado and Arizona State University.
@@ -135,6 +179,14 @@ ui <- list(
           p("Besides learning a bit about me, you can use this app to explore
             three semesters' worth of data from a class activity I do with my
             STAT 461-ANOVA students. Head to the Explore page."),
+          p("test 1"),
+          # tags$figure(
+          #   class = "centerGettyImage",
+          #   HTML("<a id='nI7TweJuToNK2F--nVFLUQ' class='gie-single' href='http://www.gettyimages.com/detail/1254565557' target='_blank' style='color:#000000 !important;text-decoration:none;font-weight:normal !important;border:none;display:inline-block;'>Embed from Getty Images</a>
+          #        <script>window.gie=window.gie||function(c){(gie.q=gie.q||[]).push(c)};gie(function(){gie.widgets.load({id:'nI7TweJuToNK2F--nVFLUQ',sig:'4c3HTKF5p9quZvkc01PiHJq4yLZvDQQGQ_rPM0J_e5E=',w:'509px',h:'339px',items:'1254565557',caption: true ,tld:'com',is360: false })});</script>
+          #        <script src='//embed-cdn.gettyimages.com/widgets.js' charset='utf-8' async></script>"),
+          #   tags$figcaption("This is a basketball photo.")
+          # ),
           div(
             style = "text-align: center;",
             bsButton(
@@ -201,6 +253,14 @@ ui <- list(
                   label = "Create plot",
                   size = "large",
                   style = "default"
+                ),
+                sliderInput(
+                  inputId = "temp1",
+                  label = "year",
+                  min = 2016,
+                  max = 2023,
+                  value = 2016,
+                  sep = ""
                 )
               )
             ),
@@ -208,6 +268,80 @@ ui <- list(
               width = 8,
               offset = 0,
               plotOutput(outputId = "songPlot")
+            )
+          )
+        ),
+        ### Testing Page ----
+        tabItem(
+          tabName = "testing",
+          withMathJax(),
+          h2("Neil's Code Testing Page"),
+          tabsetPanel(
+            id = "testing1",
+            type = "tabs",
+            tabPanel(
+              title = 'Exercises', 
+              value = 'panel2',
+              br(),
+              h3("Instructions"),
+              p("You can try the following questions. Test your code with the
+                following R script box with the R Markdown output under the
+                'Knitted Output' header. In each turn, 10 questions will be 
+                randomly drawn from the question bank. Uncomment the sample 
+                code to start to explore."
+              ),
+              fluidRow(
+                column(
+                  width = 6,
+                  h2("Exercises"),
+                  uiOutput('progress'),
+                  wellPanel(
+                    uiOutput("question"),
+                    uiOutput("options"),
+                    br(),
+                    selectInput(
+                      inputId = "answer", 
+                      label = "Select your answer from below", 
+                      choices = c("","A", "B", "C")
+                    ),
+                    uiOutput("mark")
+                  ),
+                  bsButton(
+                    inputId = 'submit', 
+                    label = 'Submit',
+                    disabled = TRUE, 
+                    style = "success"
+                  ),
+                  bsButton(
+                    inputId = "nextq",
+                    label = "Next",
+                    disabled = TRUE
+                  ),
+                  bsButton(
+                    inputId = "reset",
+                    label = "Restart", 
+                    style = "danger",
+                    disabled = TRUE
+                  ),
+                  h3("Try Your Code"),
+                  # aceEditor(
+                  #   outputId = "rmd",
+                  #   mode = "markdown", 
+                  #   value = initialAceText,
+                  #   theme = "xcode",
+                  #   wordWrap = TRUE
+                  # ),
+                  bsButton(
+                    inputId = "eval", 
+                    label = "Run"
+                  )
+                ),
+                column(
+                  width = 6,
+                  h3("Knitted Output"),
+                  uiOutput("knitDoc")
+                )
+              )
             )
           )
         ),
@@ -420,6 +554,24 @@ server <- function(input, output, session) {
     },
     ignoreNULL = FALSE,
     ignoreInit = TRUE
+  )
+  
+  ## Testing Code Area ----
+  observeEvent(
+    eventExpr = input$eval,
+    handlerExpr = {
+      output$knitDoc <- renderUI(
+        expr = {
+          # HTML(
+          #   knit2html(
+          #     text = input$rmd,
+          #     template = FALSE,
+          #     quiet = TRUE
+          #   )
+          # )
+        }
+      )
+    }
   )
 
 
