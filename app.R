@@ -4,23 +4,111 @@ library(shinydashboard)
 library(shinyBS)
 library(shinyWidgets)
 library(boastUtils)
+library(dplyr)
+library(ggplot2)
+library(stringr)
+# library(shinya11y) # An accessibility checker (won't be part of final app)
+# library(shinyAce)
+# library(knitr)
+# library(shinydashboardPlus)
+# library(fresh)
+library(howler)
 
-# Load additional dependencies and setup functions
-# source("global.R")
+# Create Custom Theme ----
+# mytheme <- create_theme(
+#   # adminlte_color(
+#   #   light_blue = "#437C5E"
+#   # ),
+#   # adminlte_sidebar(
+#   #   dark_bg = "#28DEE9",
+#   #   dark_hover_bg = "#81A1C1",
+#   #   dark_color = "#2E3440"
+#   # ),
+#   # adminlte_global(
+#   #   content_bg = "#17FF88",
+#   #   box_bg = "#18FF39", 
+#   #   info_box_bg = "#D8DEE9"
+#   # ),
+#   bs_vars_button(
+#     default_bg = "#18FF39"
+#   )
+# )
+
+# source("aceText.R")
+source("svgTest.R")
+
+audio_files_dir <- system.file("examples/_audio", package = "howler")
+addResourcePath("sample_audio", audio_files_dir)
+audio_files <- file.path("sample_audio", list.files(audio_files_dir, ".mp3$"))
+
+# Load additional dependencies and setup functions ----
+freedmanDiaconis <- function(x){
+  binwidth <- ifelse(
+    test = IQR(x) == 0,
+    yes = 0.1,
+    no = 2 * IQR(x) / (length(x)^(1/3))
+  )
+  return(binwidth)
+}
+# Load Data from GitHub
+centralDataPath <- "https://raw.github.com/neilhatfield/STAT461/master/dataFiles/songKnowledge_"
+spring22 <- read.csv(
+  file = paste0(centralDataPath, "Spring2022.csv")
+)
+fall22 <- read.csv(
+  file = paste0(centralDataPath, "Fall2022.csv")
+)
+spring23 <- read.csv(
+  file = paste0(centralDataPath, "Sp23.csv")
+)
+# Load Alt Text----
+altText <- read.table(
+  file = "altText.csv",
+  header = TRUE,
+  sep = ",",
+  quote = "\"" # Allows for the ' in term
+)
+
+# Apply consistent column names and bind into one file
+names(spring22) <- c("year", "score")
+names(fall22) <- c("year", "score")
+names(spring23) <- c("year", "score")
+spring22$term <- "Spring '22"
+fall22$term <- "Fall '22"
+spring23$term <- "Spring '23"
+songKnowledgeData <- rbind(spring22, fall22, spring23)
+remove(list = c("spring22", "fall22", "spring23"))
+
+# Clean Data
+songKnowledgeData <- songKnowledgeData %>%
+  mutate(
+    year = str_to_sentence(year),
+    year = case_when(
+      year == "Other" ~ "Sophomore",
+      year == "Senior" ~ "Senior+",
+      .default = year
+    )
+  )
+songKnowledgeData$year <- factor(
+  x = songKnowledgeData$year,
+  levels = c("Sophomore", "Junior", "Senior+"),
+  ordered = TRUE
+)
 
 # Define UI for App ----
 ui <- list(
-  ## Create the app page ----
+  # use_tota11y(), # place once in the UI to include accessibility checking tools
   dashboardPage(
-    skin = "blue",
-    ### Create the app header ----
+    # freshTheme = mytheme,
+    skin = "red",
+    ## Header ----
     dashboardHeader(
-      title = "App Template", # You may use a shortened form of the title here
+      title = "Neil's Intro",
       titleWidth = 250,
       tags$li(class = "dropdown", actionLink("info", icon("info"))),
       tags$li(
         class = "dropdown",
-        boastUtils::surveyLink(name = "App_Template")
+        boastUtils::surveyLink(name = "Introducing_Neil_Hatfield")
       ),
       tags$li(
         class = "dropdown",
@@ -29,18 +117,14 @@ ui <- list(
         )
       )
     ),
-    ### Create the sidebar/left navigation menu ----
+    ## Sidebar ----
     dashboardSidebar(
       width = 250,
       sidebarMenu(
         id = "pages",
         menuItem("Overview", tabName = "overview", icon = icon("gauge-high")),
-        menuItem("Prerequisites", tabName = "prerequisites", icon = icon("book")),
-        menuItem("Example", tabName = "example", icon = icon("book-open-reader")),
         menuItem("Explore", tabName = "explore", icon = icon("wpexplorer")),
-        menuItem("Challenge", tabName = "challenge", icon = icon("gears")),
-        menuItem("Game", tabName = "game", icon = icon("gamepad")),
-        menuItem("Wizard", tabName = "wizard", icon = icon("hat-wizard")),
+        menuItem("Testing Page", tabName = "testing", icon = icon("flask")),
         menuItem("References", tabName = "references", icon = icon("leanpub"))
       ),
       tags$div(
@@ -48,47 +132,81 @@ ui <- list(
         boastUtils::sidebarFooter()
       )
     ),
-    ### Create the content ----
+    ## Body ----
     dashboardBody(
       tabItems(
-        #### Set up the Overview Page ----
+        ### Overview Page ----
         tabItem(
           tabName = "overview",
           withMathJax(),
-          h1("Sample Application for BOAST Apps"), # This should be the full name.
-          p("This is a sample Shiny application for BOAST. Remember, this page
-            will act like the front page (home page) of your app. Thus you will
-            want to have this page catch attention and describe (in general terms)
-            what the user can do in the rest of the app."),
-          h2("Instructions"),
-          p("This information will change depending on what you want to do."),
-          tags$ol(
-            tags$li("Review any prerequiste ideas using the Prerequistes tab."),
-            tags$li("Explore the Exploration Tab."),
-            tags$li("Challenge yourself."),
-            tags$li("Play the game to test how far you've come.")
+          h1("Introducing Neil Hatfield"),
+          tags$figure(
+            class = "centerFigure",
+            tags$img(
+              src = "hatfield-neil-SQ.jpg",
+              height = 276,
+              alt = "Headshot of Neil Hatfield"
+            ),
+            tags$figcaption("Neil Hatfield, ", HTML("&copy;"), "M. Fleck")
           ),
-          ##### Go Button--location will depend on your goals
+          howler(elementId = "sound", audio_files),
+          tags$p(
+            howlerPlayPauseButton("sound"),
+            "Play or pause the track"
+          ),
+          tags$p(
+            howlerStopButton("sound"),
+            "Stop the track and return to the start"
+          ),
+          div(
+            style = "text-align: center;",
+            neuralNet
+          ),
+          p("Hi! Welcome to one of my Shiny apps where you can learn a bit about me."),
+          p("I have been at Penn State since August 2019, previsously I was
+            at the University of Northern Colorado and Arizona State University.
+            My research interests mostly centered in the realm of Statistics
+            Education. However, I also do some research in diversity, equity, and
+            inclusion in STEM more broadly."),
+          p("I've taught a variety of classes including Pre-calculus,
+            Brief/Business Calculus, Introductory Statistics (3 different flavors),
+            Intro Stats for Teaching (Master's level), Quantitative Methods
+            (PhD level), Design of Experiments/ANOVA, Teaching Statistics
+            (graduate seminar), and Statistics Education Seminar (graduate level).
+            Additionally, I've worked with the Shiny app program since 2019."),
+          p("In my spare time I like to cook/bake, ride my road bike, and read.
+            I also continue to think about modifications/improvements to various
+            courses that I teach. During the regular semester, you can find me
+            wearing different tie knots."),
+          h2("Instructions"),
+          p("Besides learning a bit about me, you can use this app to explore
+            three semesters' worth of data from a class activity I do with my
+            STAT 461-ANOVA students. Head to the Explore page."),
+          p("test 1"),
+          # tags$figure(
+          #   class = "centerGettyImage",
+          #   HTML("<a id='nI7TweJuToNK2F--nVFLUQ' class='gie-single' href='http://www.gettyimages.com/detail/1254565557' target='_blank' style='color:#000000 !important;text-decoration:none;font-weight:normal !important;border:none;display:inline-block;'>Embed from Getty Images</a>
+          #        <script>window.gie=window.gie||function(c){(gie.q=gie.q||[]).push(c)};gie(function(){gie.widgets.load({id:'nI7TweJuToNK2F--nVFLUQ',sig:'4c3HTKF5p9quZvkc01PiHJq4yLZvDQQGQ_rPM0J_e5E=',w:'509px',h:'339px',items:'1254565557',caption: true ,tld:'com',is360: false })});</script>
+          #        <script src='//embed-cdn.gettyimages.com/widgets.js' charset='utf-8' async></script>"),
+          #   tags$figcaption("This is a basketball photo.")
+          # ),
           div(
             style = "text-align: center;",
             bsButton(
-              inputId = "go1",
-              label = "GO!",
+              inputId = "goToExplore",
+              label = "Go To Explore!",
               size = "large",
               icon = icon("bolt"),
               style = "default"
             )
           ),
-          ##### Create two lines of space
           br(),
           br(),
           h2("Acknowledgements"),
           p(
             "This version of the app was developed and coded by Neil J.
-            Hatfield  and Robert P. Carey, III.",
+            Hatfield.",
             br(),
-            "We would like to extend a special thanks to the Shiny Program
-            Students.",
             br(),
             br(),
             "Cite this app as:",
@@ -96,120 +214,196 @@ ui <- list(
             citeApp(),
             br(),
             br(),
-            div(class = "updated", "Last Update: 11/8/2022 by NJH.")
+            div(class = "updated", "Last Update: 05/18/2023 by NJH.")
           )
         ),
-        #### Set up the Prerequisites Page ----
-        tabItem(
-          tabName = "prerequisites",
-          withMathJax(),
-          h2("Prerequisites"),
-          p("In order to get the most out of this app, please review the
-            following:"),
-          tags$ul(
-            tags$li("Pre-req 1--Technical/Conceptual Prerequisites are ideas that
-                    users need to have in order to engage with your app fully."),
-            tags$li("Pre-req 2--Contextual Prerequisites refer to any information
-                    about a context in your app that will enrich a user's
-                    understandings."),
-            tags$li("Pre-req 3"),
-            tags$li("Pre-req 4")
-          ),
-          p("Notice the use of an unordered list; users can move through the
-            list any way they wish."),
-          box(
-            title = strong("Null Hypothesis Significance Tests (NHSTs)"),
-            status = "primary",
-            collapsible = TRUE,
-            collapsed = TRUE,
-            width = '100%',
-            "In the Confirmatory Data Analysis tradition, null hypothesis
-            significance tests serve as a critical tool to confirm that a
-            particular theoretical model describes our data and to make a
-            generalization from our sample to the broader population
-            (i.e., make an inference). The null hypothesis often reflects the
-            simpler of two models (e.g., 'no statistical difference',
-            'there is an additive difference of 1', etc.) that we will use to
-            build a sampling distribution for our chosen estimator. These
-            methods let us test whether our sample data are consistent with this
-            simple model (null hypothesis)."
-          ),
-          box(
-            title = strong(tags$em("p"), "-values"),
-            status = "primary",
-            collapsible = TRUE,
-            collapsed = FALSE,
-            width = '100%',
-            "The probability that our selected estimator takes on a value at
-            least as extreme as what we observed given our null hypothesis. If
-            we were to carry out our study infinitely many times and the null
-            hypothesis accurately modeled what we're studying, then we would
-            expect for our estimator to produce a value at least as extreme as
-            what we have seen 100*(p-value)% of the time. The larger the
-            p-value, the more often we would expect our estimator to take on a
-            value at least as extreme as what we've seen; the smaller, the less
-            often."
-          )
-        ),
-        #### Note: you must have at least one of the following pages. You might
-        #### have more than one type and/or more than one of the same type. This
-        #### will be up to you and the goals for your app.
-        #### Set up an Explore Page ----
+        ### Explore Page ----
         tabItem(
           tabName = "explore",
           withMathJax(),
-          h2("Explore the Concept"),
-          p("This page should include something for the user to do, the more
-            active and engaging, the better. The purpose of this page is to help
-            the user build a productive understanding of the concept your app
-            is dedicated to."),
-          p("Common elements include graphs, sliders, buttons, etc."),
-          p("The following comes from the NHST Caveats App:"),
+          h2("Explore the Song Knowledge Data"),
+          p("In my STAT 461-Analysis of Variance course, we design and carry out
+            a one-factor study to explore whether a student's year in school
+            impacts how well they do in a pub trivia style song quiz. For the
+            quiz, approximately 20 seconds of 10 songs is played. Players have to
+            correctly identify the full title of the song and the primary artist.
+            Players earn one point for each correct title and each correct artist."),
+          p("Explore the data sets below form a hypothesis for whether students'
+            year in school impacts how well they perform."),
+          fluidRow(
+            column(
+              width = 4,
+              offset = 0,
+              wellPanel(
+                selectInput(
+                  inputId = "plotType",
+                  label = "Select a plot type",
+                  choices = c("Box plot", "Histogram", "Density")
+                ),
+                selectInput(
+                  inputId = "termPicked",
+                  label = "Select a term",
+                  choices = c("Spring '22", "Fall '22", "Spring '23", "All"),
+                  selected = "All"
+                ),
+                checkboxInput(
+                  inputId = "byYear",
+                  label = "Show data by year in school",
+                  value = FALSE
+                ),
+                bsButton(
+                  inputId = "makePlot",
+                  label = "Create plot",
+                  size = "large",
+                  style = "default"
+                ),
+                sliderInput(
+                  inputId = "temp1",
+                  label = "year",
+                  min = 2016,
+                  max = 2023,
+                  value = 2016,
+                  sep = ""
+                )
+              )
+            ),
+            column(
+              width = 8,
+              offset = 0,
+              plotOutput(outputId = "songPlot")
+            )
+          )
         ),
-        #### Set up a Challenge Page ----
+        ### Testing Page ----
         tabItem(
-          tabName = "challenge",
+          tabName = "testing",
           withMathJax(),
-          h2("Challenge Yourself"),
-          p("The general intent of a Challenge page is to have the user take
-            what they learned in an Exploration and apply that knowledge in new
-            contexts/situations. In essence, to have them challenge their
-            understanding by testing themselves."),
-          p("What this page looks like will be up to you. Something you might
-            consider is to re-create the tools of the Exploration page and then
-            a list of questions for the user to then answer.")
+          h2("Neil's Code Testing Page"),
+          tabsetPanel(
+            id = "testing1",
+            type = "tabs",
+            tabPanel(
+              title = 'Exercises', 
+              value = 'panel2',
+              br(),
+              h3("Instructions"),
+              p("You can try the following questions. Test your code with the
+                following R script box with the R Markdown output under the
+                'Knitted Output' header. In each turn, 10 questions will be 
+                randomly drawn from the question bank. Uncomment the sample 
+                code to start to explore."
+              ),
+              fluidRow(
+                column(
+                  width = 6,
+                  h2("Exercises"),
+                  uiOutput('progress'),
+                  wellPanel(
+                    uiOutput("question"),
+                    uiOutput("options"),
+                    br(),
+                    selectInput(
+                      inputId = "answer", 
+                      label = "Select your answer from below", 
+                      choices = c("","A", "B", "C")
+                    ),
+                    uiOutput("mark")
+                  ),
+                  bsButton(
+                    inputId = 'submit', 
+                    label = 'Submit',
+                    disabled = TRUE, 
+                    style = "success"
+                  ),
+                  bsButton(
+                    inputId = "nextq",
+                    label = "Next",
+                    disabled = TRUE
+                  ),
+                  bsButton(
+                    inputId = "reset",
+                    label = "Restart", 
+                    style = "danger",
+                    disabled = TRUE
+                  ),
+                  h3("Try Your Code"),
+                  # aceEditor(
+                  #   outputId = "rmd",
+                  #   mode = "markdown", 
+                  #   value = initialAceText,
+                  #   theme = "xcode",
+                  #   wordWrap = TRUE
+                  # ),
+                  bsButton(
+                    inputId = "eval", 
+                    label = "Run"
+                  )
+                ),
+                column(
+                  width = 6,
+                  h3("Knitted Output"),
+                  uiOutput("knitDoc")
+                )
+              )
+            )
+          )
         ),
-        #### Set up a Game Page ----
-        tabItem(
-          tabName = "game",
-          withMathJax(),
-          h2("Practice/Test Yourself with [Type of Game]"),
-          p("On this type of page, you'll set up a game for the user to play.
-            Game types include Tic-Tac-Toe, Matching, and a version Hangman to
-            name a few. If you have ideas for new game type, please let us know.")
-        ),
-        #### Set up a Wizard Page ----
-        tabItem(
-          tabName = "wizard",
-          withMathJax(),
-          h2("Wizard"),
-          p("This page will have a series of inputs and questions for the user to
-            answer/work through in order to have the app create something. These
-            types of Activity pages are currently rare as we try to avoid
-            creating 'calculators' in the BOAST project.")
-        ),
-        #### Set up the References Page ----
+        ### References Page ----
         tabItem(
           tabName = "references",
           withMathJax(),
           h2("References"),
-          p("You'll need to fill in this page with all of the appropriate
-            references for your app."),
+          p( # Each reference is in its own paragraph
+            class = "hangingindent", # you must set this class argument
+            "Bailey, E. (2022). shinyBS: Twitter bootstrap components for shiny.
+            (v0.61.1). [R package]. Available from https://CRAN.R-project.org/package=shinyBS"
+          ),
           p(
             class = "hangingindent",
-            "Bailey, E. (2015). shinyBS: Twitter bootstrap components for shiny.
-            (v0.61). [R package]. Available from
-            https://CRAN.R-project.org/package=shinyBS"
+            "Carey, R. and Hatfield., N. J. (2023). boastUtils: BOAST utilities.
+            (v0.1.11.2). [R Package]. Available from
+            https://github.com/EducationShinyappTeam/boastUtils"
+          ),
+          p(
+            class = "hangingindent",
+            "Chang, W. and Borges Ribeio, B. (2021). shinydashboard: Create dashboards
+            with 'Shiny'. (v0.7.2). [R Package]. Available from
+            https://CRAN.R-project.org/package=shinydashboard"
+          ),
+          p(
+            class = "hangingindent",
+            "Chang, W., Cheng, J., Allaire, J.J., Sievert, C., Schloerke, B.,
+            Xie, Y., Allen, J., McPherson, J., Dipert, A., and Borges, B. (2022).
+            shiny: Web application framework for R. (v1.7.4). [R Package].
+            Available from https://CRAN.R-project.org/package=shiny"
+          ),
+          p(
+            class = "hangingindent",
+            "Fleck, M. (2022). Picture of Neil J. Hatfield."
+          ),
+          p(
+            class = "hangingindent",
+            "Perrier, V., Meyer, F., and Granjon, D. (2023). shinyWidgets: Custom
+            inputs widgets for shiny. (v0.7.6). [R Package]. Availble from
+            https://CRAN.R-project.org/package=shinyWidgets"
+          ),
+          p(
+            class = "hangingindent",
+            "Wickham, H. (2016). ggplot2: Elegant graphics for data analysis.
+            (v3.4.2). [R Package]. New York:Springer-Verlag. Available from
+            https://ggplot2.tidyverse.org"
+          ),
+          p(
+            class = "hangingindent",
+            "Wickham, H. (2022). stringr: Simple, consistent wrappers for common
+            string operations. (v1.5.0). [R Package] Available from
+            https://CRAN.R-project.org/package=stringr"
+          ),
+          p(
+            class = "hangingindent",
+            "Wickham, H., François, R., Henry, L., Müller, K., and Vaughan, D.
+            (2023). dplyr: A grammar of data manipulation. (v1.1.2). [R Package].
+            Available from https://CRAN.R-project.org/package=dplyr"
           ),
           br(),
           br(),
@@ -223,7 +417,7 @@ ui <- list(
 
 # Define server logic ----
 server <- function(input, output, session) {
-
+  selectedAltText <- reactiveVal("Plot Coming")
   ## Set up Info button ----
   observeEvent(
     eventExpr = input$info,
@@ -232,7 +426,153 @@ server <- function(input, output, session) {
         session = session,
         type = "info",
         title = "Information",
-        text = "This App Template will help you get started building your own app"
+        text = "Learn about Neil and explore the Song Knowledge data."
+      )
+    }
+  )
+
+  ## Move to Explore Page ----
+  observeEvent(
+    eventExpr = input$goToExplore,
+    handlerExpr = {
+      updateTabItems(
+        session = session,
+        inputId = "pages",
+        selected = "explore"
+      )
+    }
+  )
+
+  ## Song Knowledge Plot ----
+  observeEvent(
+    eventExpr = input$makePlot,
+    handlerExpr = {
+      ### Create initial plot object
+      displayPlot <- "NA"
+      ### Filter Data, if necessary
+      if (input$termPicked != "All") {
+        plotData <- songKnowledgeData %>%
+          filter(term == input$termPicked)
+      } else {
+        plotData <- songKnowledgeData
+      }
+
+      ### Base Plot with themeing
+      basePlot <- ggplot(
+        data = plotData,
+        mapping = aes(x = score)
+      )
+
+      if (input$byYear) {
+        basePlot <- basePlot + aes(fill = year)
+      }
+
+      basePlot <- basePlot +
+        theme_bw() +
+        theme(
+          text = element_text(size = 18),
+          legend.position = "bottom"
+        ) +
+        labs(
+          x = "Score",
+          fill = "Year"
+        ) +
+        scale_fill_manual(values = psuPalette)
+
+      ### Add Plot Type
+      if (input$plotType == "Density" & input$byYear) {
+        displayPlot <- plotData %>%
+          dplyr::filter(year != "Sophomore") %>%
+          ggplot(mapping = aes(x = score, fill = year)) +
+          geom_density(
+            bounds = c(0, 20),
+            alpha = 0.75,
+            na.rm = TRUE
+          ) +
+          scale_y_continuous(expand = expansion(mult = c(0, 0.01))) +
+          theme_bw() +
+          theme(
+            text = element_text(size = 18),
+            legend.position = "bottom"
+          ) +
+          labs(
+            x = "Score",
+            fill = "Year",
+            caption = "The one Sophomore scoring 8 isn't shown."
+          ) +
+          scale_fill_manual(values = psuPalette)
+      } else if (input$plotType == "Box plot") {
+        displayPlot <- basePlot +
+          geom_boxplot() +
+          theme(
+            axis.text.y = element_blank(),
+            axis.ticks.y = element_blank()
+          )
+      } else if (input$plotType == "Histogram") {
+        displayPlot <- basePlot +
+          geom_histogram(
+            color = "black",
+            binwidth = freedmanDiaconis,
+            closed = "left",
+            boundary = 0,
+            position = "identity",
+            alpha = 0.75
+          ) +
+          scale_y_continuous(expand = expansion(add = c(0, 2)))
+      } else if (input$plotType == "Density") {
+        displayPlot <- basePlot +
+          geom_density(
+            bounds = c(0, 20),
+            alpha = 0.75,
+            na.rm = TRUE
+          ) +
+          scale_y_continuous(expand = expansion(mult = c(0, 0.01)))
+      }
+
+      ### Alt text ----
+      selectedAltText(
+        altText %>%
+          filter(
+            plotType == input$plotType &
+              term == input$termPicked &
+              byTerm == input$byYear
+          ) %>%
+          select(altText) %>%
+          as.character()
+      )
+
+      ### Display the plot
+      output$songPlot <- renderPlot(
+        expr = {
+          validate(
+            need(
+              expr = !is.na(displayPlot),
+              message = "Plot could not be generated. Contact app developer."
+            )
+          )
+          displayPlot
+        },
+        alt = selectedAltText()
+      )
+    },
+    ignoreNULL = FALSE,
+    ignoreInit = TRUE
+  )
+  
+  ## Testing Code Area ----
+  observeEvent(
+    eventExpr = input$eval,
+    handlerExpr = {
+      output$knitDoc <- renderUI(
+        expr = {
+          # HTML(
+          #   knit2html(
+          #     text = input$rmd,
+          #     template = FALSE,
+          #     quiet = TRUE
+          #   )
+          # )
+        }
       )
     }
   )
