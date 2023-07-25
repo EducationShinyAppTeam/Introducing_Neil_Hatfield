@@ -12,7 +12,7 @@ library(stringr)
 # library(knitr)
 # library(shinydashboardPlus)
 # library(fresh)
-# library(howler)
+library(howler)
 
 # Create Custom Theme ----
 # mytheme <- create_theme(
@@ -37,9 +37,9 @@ library(stringr)
 # source("aceText.R")
 source("svgTest.R")
 
-# audio_files_dir <- system.file("examples/_audio", package = "howler")
-# addResourcePath("sample_audio", audio_files_dir)
-# audio_files <- file.path("sample_audio", list.files(audio_files_dir, ".mp3$"))
+audio_files_dir <- system.file("examples/_audio", package = "howler")
+addResourcePath("sample_audio", audio_files_dir)
+audio_files <- file.path("sample_audio", list.files(audio_files_dir, ".mp3$"))
 
 # Load additional dependencies and setup functions ----
 freedmanDiaconis <- function(x){
@@ -50,18 +50,18 @@ freedmanDiaconis <- function(x){
   )
   return(binwidth)
 }
-## Load Data from GitHub
-# centralDataPath <- "https://raw.github.com/neilhatfield/STAT461/master/dataFiles/songKnowledge_"
-# spring22 <- read.csv(
-#   file = paste0(centralDataPath, "Spring2022.csv")
-# )
-# fall22 <- read.csv(
-#   file = paste0(centralDataPath, "Fall2022.csv")
-# )
-# spring23 <- read.csv(
-#   file = paste0(centralDataPath, "Sp23.csv")
-# )
-## Load Alt Text----
+# Load Data from GitHub
+centralDataPath <- "https://raw.github.com/neilhatfield/STAT461/master/dataFiles/songKnowledge_"
+spring22 <- read.csv(
+  file = paste0(centralDataPath, "Spring2022.csv")
+)
+fall22 <- read.csv(
+  file = paste0(centralDataPath, "Fall2022.csv")
+)
+spring23 <- read.csv(
+  file = paste0(centralDataPath, "Sp23.csv")
+)
+# Load Alt Text----
 altText <- read.table(
   file = "altText.csv",
   header = TRUE,
@@ -69,31 +69,31 @@ altText <- read.table(
   quote = "\"" # Allows for the ' in term
 )
 
-## Apply consistent column names and bind into one file
-# names(spring22) <- c("year", "score")
-# names(fall22) <- c("year", "score")
-# names(spring23) <- c("year", "score")
-# spring22$term <- "Spring '22"
-# fall22$term <- "Fall '22"
-# spring23$term <- "Spring '23"
-# songKnowledgeData <- rbind(spring22, fall22, spring23)
-# remove(list = c("spring22", "fall22", "spring23"))
+# Apply consistent column names and bind into one file
+names(spring22) <- c("year", "score")
+names(fall22) <- c("year", "score")
+names(spring23) <- c("year", "score")
+spring22$term <- "Spring '22"
+fall22$term <- "Fall '22"
+spring23$term <- "Spring '23"
+songKnowledgeData <- rbind(spring22, fall22, spring23)
+remove(list = c("spring22", "fall22", "spring23"))
 
-## Clean Data
-# songKnowledgeData <- songKnowledgeData %>%
-#   mutate(
-#     year = str_to_sentence(year),
-#     year = case_when(
-#       year == "Other" ~ "Sophomore",
-#       year == "Senior" ~ "Senior+",
-#       .default = year
-#     )
-#   )
-# songKnowledgeData$year <- factor(
-#   x = songKnowledgeData$year,
-#   levels = c("Sophomore", "Junior", "Senior+"),
-#   ordered = TRUE
-# )
+# Clean Data
+songKnowledgeData <- songKnowledgeData %>%
+  mutate(
+    year = str_to_sentence(year),
+    year = case_when(
+      year == "Other" ~ "Sophomore",
+      year == "Senior" ~ "Senior+",
+      .default = year
+    )
+  )
+songKnowledgeData$year <- factor(
+  x = songKnowledgeData$year,
+  levels = c("Sophomore", "Junior", "Senior+"),
+  ordered = TRUE
+)
 
 # Define UI for App ----
 ui <- list(
@@ -149,16 +149,19 @@ ui <- list(
             ),
             tags$figcaption("Neil Hatfield, ", HTML("&copy;"), "M. Fleck")
           ),
-          # howler(elementId = "sound", audio_files),
-          # tags$p(
-          #   howlerPlayPauseButton("sound"),
-          #   "Play or pause the track"
-          # ),
-          # tags$p(
-          #   howlerStopButton("sound"),
-          #   "Stop the track and return to the start"
-          # ),
-          neuralNet,
+          howler(elementId = "sound", audio_files),
+          tags$p(
+            howlerPlayPauseButton("sound"),
+            "Play or pause the track"
+          ),
+          tags$p(
+            howlerStopButton("sound"),
+            "Stop the track and return to the start"
+          ),
+          div(
+            style = "text-align: center;",
+            neuralNet
+          ),
           p("Hi! Welcome to one of my Shiny apps where you can learn a bit about me."),
           p("I have been at Penn State since August 2019, previsously I was
             at the University of Northern Colorado and Arizona State University.
@@ -441,120 +444,120 @@ server <- function(input, output, session) {
   )
 
   ## Song Knowledge Plot ----
-  # observeEvent(
-  #   eventExpr = input$makePlot,
-  #   handlerExpr = {
-  #     ### Create initial plot object
-  #     displayPlot <- "NA"
-  #     ### Filter Data, if necessary
-  #     if (input$termPicked != "All") {
-  #       plotData <- songKnowledgeData %>%
-  #         filter(term == input$termPicked)
-  #     } else {
-  #       plotData <- songKnowledgeData
-  #     }
-  # 
-  #     ### Base Plot with themeing
-  #     basePlot <- ggplot(
-  #       data = plotData,
-  #       mapping = aes(x = score)
-  #     )
-  # 
-  #     if (input$byYear) {
-  #       basePlot <- basePlot + aes(fill = year)
-  #     }
-  # 
-  #     basePlot <- basePlot +
-  #       theme_bw() +
-  #       theme(
-  #         text = element_text(size = 18),
-  #         legend.position = "bottom"
-  #       ) +
-  #       labs(
-  #         x = "Score",
-  #         fill = "Year"
-  #       ) +
-  #       scale_fill_manual(values = psuPalette)
-  # 
-  #     ### Add Plot Type
-  #     if (input$plotType == "Density" & input$byYear) {
-  #       displayPlot <- plotData %>%
-  #         dplyr::filter(year != "Sophomore") %>%
-  #         ggplot(mapping = aes(x = score, fill = year)) +
-  #         geom_density(
-  #           bounds = c(0, 20),
-  #           alpha = 0.75,
-  #           na.rm = TRUE
-  #         ) +
-  #         scale_y_continuous(expand = expansion(mult = c(0, 0.01))) +
-  #         theme_bw() +
-  #         theme(
-  #           text = element_text(size = 18),
-  #           legend.position = "bottom"
-  #         ) +
-  #         labs(
-  #           x = "Score",
-  #           fill = "Year",
-  #           caption = "The one Sophomore scoring 8 isn't shown."
-  #         ) +
-  #         scale_fill_manual(values = psuPalette)
-  #     } else if (input$plotType == "Box plot") {
-  #       displayPlot <- basePlot +
-  #         geom_boxplot() +
-  #         theme(
-  #           axis.text.y = element_blank(),
-  #           axis.ticks.y = element_blank()
-  #         )
-  #     } else if (input$plotType == "Histogram") {
-  #       displayPlot <- basePlot +
-  #         geom_histogram(
-  #           color = "black",
-  #           binwidth = freedmanDiaconis,
-  #           closed = "left",
-  #           boundary = 0,
-  #           position = "identity",
-  #           alpha = 0.75
-  #         ) +
-  #         scale_y_continuous(expand = expansion(add = c(0, 2)))
-  #     } else if (input$plotType == "Density") {
-  #       displayPlot <- basePlot +
-  #         geom_density(
-  #           bounds = c(0, 20),
-  #           alpha = 0.75,
-  #           na.rm = TRUE
-  #         ) +
-  #         scale_y_continuous(expand = expansion(mult = c(0, 0.01)))
-  #     }
-  # 
-  #     ### Alt text ----
-  #     selectedAltText(
-  #       altText %>%
-  #         filter(
-  #           plotType == input$plotType &
-  #             term == input$termPicked &
-  #             byTerm == input$byYear
-  #         ) %>%
-  #         select(altText) %>%
-  #         as.character()
-  #     )
-  # 
-  #     ### Display the plot
-  #     output$songPlot <- renderPlot(
-  #       expr = {
-  #         validate(
-  #           need(
-  #             expr = !is.na(displayPlot),
-  #             message = "Plot could not be generated. Contact app developer."
-  #           )
-  #         )
-  #         displayPlot
-  #       },
-  #       alt = selectedAltText()
-  #     )
-  #   },
-  #   ignoreNULL = FALSE,
-  #   ignoreInit = TRUE
-  # )
+  observeEvent(
+    eventExpr = input$makePlot,
+    handlerExpr = {
+      ### Create initial plot object
+      displayPlot <- "NA"
+      ### Filter Data, if necessary
+      if (input$termPicked != "All") {
+        plotData <- songKnowledgeData %>%
+          filter(term == input$termPicked)
+      } else {
+        plotData <- songKnowledgeData
+      }
+
+      ### Base Plot with themeing
+      basePlot <- ggplot(
+        data = plotData,
+        mapping = aes(x = score)
+      )
+
+      if (input$byYear) {
+        basePlot <- basePlot + aes(fill = year)
+      }
+
+      basePlot <- basePlot +
+        theme_bw() +
+        theme(
+          text = element_text(size = 18),
+          legend.position = "bottom"
+        ) +
+        labs(
+          x = "Score",
+          fill = "Year"
+        ) +
+        scale_fill_manual(values = psuPalette)
+
+      ### Add Plot Type
+      if (input$plotType == "Density" & input$byYear) {
+        displayPlot <- plotData %>%
+          dplyr::filter(year != "Sophomore") %>%
+          ggplot(mapping = aes(x = score, fill = year)) +
+          geom_density(
+            bounds = c(0, 20),
+            alpha = 0.75,
+            na.rm = TRUE
+          ) +
+          scale_y_continuous(expand = expansion(mult = c(0, 0.01))) +
+          theme_bw() +
+          theme(
+            text = element_text(size = 18),
+            legend.position = "bottom"
+          ) +
+          labs(
+            x = "Score",
+            fill = "Year",
+            caption = "The one Sophomore scoring 8 isn't shown."
+          ) +
+          scale_fill_manual(values = psuPalette)
+      } else if (input$plotType == "Box plot") {
+        displayPlot <- basePlot +
+          geom_boxplot() +
+          theme(
+            axis.text.y = element_blank(),
+            axis.ticks.y = element_blank()
+          )
+      } else if (input$plotType == "Histogram") {
+        displayPlot <- basePlot +
+          geom_histogram(
+            color = "black",
+            binwidth = freedmanDiaconis,
+            closed = "left",
+            boundary = 0,
+            position = "identity",
+            alpha = 0.75
+          ) +
+          scale_y_continuous(expand = expansion(add = c(0, 2)))
+      } else if (input$plotType == "Density") {
+        displayPlot <- basePlot +
+          geom_density(
+            bounds = c(0, 20),
+            alpha = 0.75,
+            na.rm = TRUE
+          ) +
+          scale_y_continuous(expand = expansion(mult = c(0, 0.01)))
+      }
+
+      ### Alt text ----
+      selectedAltText(
+        altText %>%
+          filter(
+            plotType == input$plotType &
+              term == input$termPicked &
+              byTerm == input$byYear
+          ) %>%
+          select(altText) %>%
+          as.character()
+      )
+
+      ### Display the plot
+      output$songPlot <- renderPlot(
+        expr = {
+          validate(
+            need(
+              expr = !is.na(displayPlot),
+              message = "Plot could not be generated. Contact app developer."
+            )
+          )
+          displayPlot
+        },
+        alt = selectedAltText()
+      )
+    },
+    ignoreNULL = FALSE,
+    ignoreInit = TRUE
+  )
   
   ## Testing Code Area ----
   observeEvent(
